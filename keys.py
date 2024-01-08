@@ -1,10 +1,12 @@
+from functools import wraps
 import logging
-from typing import Optional
+from typing import Annotated, Optional
 
-from fastapi import FastAPI, Depends
+from fastapi import Depends, FastAPI, Header, HTTPException
 from fastapi.responses import PlainTextResponse
 from sqlalchemy.orm import Session
 
+from config import *
 import models
 from database import SessionLocal, engine
 
@@ -57,23 +59,39 @@ async def get_favicon():
 	return
 
 @app.get('/{key}', response_class=PlainTextResponse)
-async def api_get_key(key: str, db: Session = Depends(get_db)):
+async def api_get_key(key: str, db: Session = Depends(get_db), authorization: Annotated[Optional[str], Header()] = None):
+	if authorization is None:
+		raise HTTPException(401)
+	if authorization != SECRET_KEY:
+		raise HTTPException(403)
 	item = get_key(db, key, None)
 	if item is not None:
 		return item.value
 	return item
 
 @app.get('/{prefix}/{key}', response_class=PlainTextResponse)
-async def api_get_prefixed_key(prefix: str, key: str, db: Session = Depends(get_db)):
+async def api_get_prefixed_key(prefix: str, key: str, db: Session = Depends(get_db), authorization: Annotated[Optional[str], Header()] = None):
+	if authorization is None:
+		raise HTTPException(401)
+	if authorization != SECRET_KEY:
+		raise HTTPException(403)
 	item = get_key(db, key, prefix)
 	if item is not None:
 		return item.value
 	return item
 
 @app.post('/{key}/{value}')
-async def api_set_key(key: str, value: str, db: Session = Depends(get_db)):
+async def api_set_key(key: str, value: str, db: Session = Depends(get_db), authorization: Annotated[Optional[str], Header()] = None):
+	if authorization is None:
+		raise HTTPException(401)
+	if authorization != SECRET_KEY:
+		raise HTTPException(403)
 	set_key(db, key, value, None)
 
 @app.post('/{prefix}/{key}/{value}')
-async def api_set_prefixed_key(prefix: str, key: str, value: str, db: Session = Depends(get_db)):
+async def api_set_prefixed_key(prefix: str, key: str, value: str, db: Session = Depends(get_db), authorization: Annotated[Optional[str], Header()] = None):
+	if authorization is None:
+		raise HTTPException(401)
+	if authorization != SECRET_KEY:
+		raise HTTPException(403)
 	set_key(db, key, value, prefix)
